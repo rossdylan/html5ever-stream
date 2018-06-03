@@ -3,6 +3,8 @@ name = "html5ever-stream"
 version = "0.1.0"
 authors = ["Ross Delinger <rossdylan@fastmail.com>"]
 build = "build.rs"
+readme = "README.md"
+license = "MIT"
 
 [dependencies]
 futures = "0.1"
