@@ -168,22 +168,23 @@ impl Stream for NodeStream {
 #[cfg(test)]
 mod tests {
     extern crate hyper;
-    use self::hyper::Body;
+    extern crate reqwest;
+    use self::reqwest::unstable::async;
     use html5ever::rcdom::RcDom;
 
     use super::*;
     const TEST_HTML: &'static str = "<html> <head> <title> test </title> </head> </html>";
     #[test]
     fn test_hyper_body_stream() {
-        let body: Body = TEST_HTML.into();
+        let body: hyper::Body = TEST_HTML.into();
         let pf = ParserFuture::new(body, RcDom::default());
         let res = pf.wait();
         assert_eq!(res.is_ok(), true);
     }
 
     #[test]
-    fn test_basic_node_stream() {
-        let body: Body = TEST_HTML.into();
+    fn test_basic_hyper_node_stream() {
+        let body: hyper::Body = TEST_HTML.into();
         let pf = ParserFuture::new(body, RcDom::default());
         let res = pf.wait();
         assert_eq!(res.is_ok(), true);
@@ -193,5 +194,15 @@ mod tests {
         let res = stream.collect().wait();
         assert_eq!(res.is_ok(), true);
         assert_eq!(res.unwrap().len(), 9);
+    }
+
+    /// This test is basically a noop, but it does check that all the types work out
+    /// Eventually when the reqwest async impl becomes stable we should be able to
+    /// properly test it.
+    #[test]
+    fn test_reqwest_body_stream() {
+        let pf = ParserFuture::new(async::Decoder::empty(), RcDom::default());
+        let res = pf.wait();
+        assert_eq!(res.is_ok(), true);
     }
 }
