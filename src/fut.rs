@@ -14,8 +14,6 @@ use html5ever::{
     tendril::stream::Utf8LossyDecoder,
 };
 
-use errors;
-
 enum ParserState<D: TreeSink> {
     Parsing(Utf8LossyDecoder<Parser<D>>),
     Finished
@@ -53,7 +51,6 @@ pub struct ParserFuture<S, C, E, D>
 impl<S, C, E, D> ParserFuture<S, C, E, D>
     where S: Stream<Item=C, Error=E>,
           C: AsRef<[u8]>,
-          E: Into<errors::Error>,
           D: TreeSink,
 {
 
@@ -72,16 +69,15 @@ impl<S, C, E, D> ParserFuture<S, C, E, D>
 impl<S, C, E, D> Future for ParserFuture<S, C, E, D>
     where S: Stream<Item=C, Error=E>,
           C: AsRef<[u8]>,
-          E: Into<errors::Error>,
           D: TreeSink,
 {
     type Item = D::Output;
-    type Error = errors::Error;
+    type Error = E;
 
     fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
         loop {
             match self.state {
-                ParserState::Parsing(ref mut parser) => match self.stream.poll().map_err(|e| e.into())? {
+                ParserState::Parsing(ref mut parser) => match self.stream.poll()? {
                     Async::Ready(Some(chunk)) => {
                         parser.process(chunk.as_ref().into());
                         continue;
@@ -152,7 +148,7 @@ impl NodeStream {
 
 impl Stream for NodeStream {
     type Item = rcdom::Handle;
-    type Error = errors::Error;
+    type Error = ();
 
     fn poll(&mut self) -> Poll<Option<Self::Item>, Self::Error> {
         match self.queue.pop_front() {
@@ -171,7 +167,8 @@ impl Stream for NodeStream {
 
 #[cfg(test)]
 mod tests {
-    use hyper::Body;
+    extern crate hyper;
+    use self::hyper::Body;
     use html5ever::rcdom::RcDom;
 
     use super::*;
