@@ -42,22 +42,52 @@ fn main() {
         .build(&handle);
 
 
-    let work = client.get("https://github.com".parse().unwrap()).and_then(|res| {
-        let parser = ParserFuture::new(res.body(), rcdom::RcDom::default());
-        parser.and_then(|dom| {
-            NodeStream::new(dom).for_each(|n| {
-                match &n.data {
-                    rcdom::NodeData::Element { ref name, .. } => {
-                        println!("elem: {}", name.local);
-                    },
-                    _ => {},
-                }
-                Ok(())
-            // TODO(rossdylan) This is a kludge fix it
-            }).map_err(|_| hyper::Error::Closed)
-        })
+    // NOTE: We throw away errors here in two places, you are better off casting them into your
+    // own custom error type in order to propagate them. I believe async/await will also help here.
+    let req_fut = client.get("https://github.com".parse().unwrap()).map_err(|_| ());
+    let parser_fut = req_fut.and_then(|res| ParserFuture::new(res.body().map_err(|_| ()), rcdom::RcDom::default()));
+    let nodes = parser_fut.and_then(|dom| {
+        NodeStream::new(dom).collect()
     });
-    core.run(work).unwrap();
+    let print_fut = nodes.and_then(|vn| {
+        println!("found {} elements", vn.len());
+        Ok(())
+    });
+    core.run(print_fut).unwrap();
+}
+```
+
+### Using Unstable Async Reqwest 0.8.6
+
+```rust
+extern crate futures;
+extern crate html5ever;
+extern crate html5ever_stream;
+extern crate reqwest;
+extern crate tokio_core;
+
+use html5ever::rcdom;
+use futures::{Future, Stream};
+use reqwest::unstable::async as async_reqwest;
+use tokio_core::reactor::Core;
+use html5ever_stream::fut::{ParserFuture, NodeStream};
+
+fn main() {
+    let mut core = Core::new().unwrap();
+    let client = async_reqwest::Client::new(&core.handle());
+
+    // NOTE: We throw away errors here in two places, you are better off casting them into your
+    // own custom error type in order to propagate them. I believe async/await will also help here.
+    let req_fut = client.get("https://github.com").send().map_err(|_| ());
+    let parser_fut = req_fut.and_then(|res| ParserFuture::new(res.into_body().map_err(|_| ()), rcdom::RcDom::default()));
+    let nodes = parser_fut.and_then(|dom| {
+        NodeStream::new(dom).collect()
+    });
+    let print_fut = nodes.and_then(|vn| {
+        println!("found {} elements", vn.len());
+        Ok(())
+    });
+    core.run(print_fut).unwrap();
 }
 ```
 
