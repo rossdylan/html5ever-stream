@@ -24,7 +24,22 @@ enum ParserState<D: TreeSink> {
 /// ParserFuture takes in any stream that emits an item that can be referenced as a `[u8]`
 /// It will collect the data from that stream into a html5ever parser. Currently you can't
 /// control the parser, but eventually you will. The future resolves to a RcDom structure.
-/// TODO(rossdylan) Make generic across any html5ever parser structure, or at least different Doms
+/// # Examples
+/// ```rust
+/// extern crate html5ever;
+/// extern crate hyper;
+/// extern crate html5ever_stream;
+/// extern crate futures;
+///
+/// use futures::Future;
+/// use html5ever_stream::fut::ParserFuture;
+/// use html5ever::rcdom::RcDom;
+/// use hyper::Body;
+///
+/// const TEST_HTML: &'static str = "<html> <head> <title> test </title> </head> </html>";
+/// let body: Body = TEST_HTML.into();
+/// let dom = ParserFuture::new(body, RcDom::default()).wait().unwrap();
+/// ```
 #[must_use = "streams do nothing unless polled"]
 pub struct ParserFuture<S, C, E, D> 
     where D: TreeSink,
@@ -133,17 +148,14 @@ impl Stream for NodeStream {
 mod tests {
     use futures::finished;
     use hyper::Body;
-    use html5ever::{
-        parse_document,
-        rcdom,
-    };
+    use html5ever::rcdom::RcDom;
 
     use super::*;
     const TEST_HTML: &'static str = "<html> <head> <title> test </title> </head> </html>";
     #[test]
     fn test_hyper_body_stream() {
         let body: Body = TEST_HTML.into();
-        let pf = ParserFuture::new(body, rcdom::RcDom::default());
+        let pf = ParserFuture::new(body, RcDom::default());
         let res = pf.wait();
         assert_eq!(res.is_ok(), true);
     }
@@ -151,7 +163,7 @@ mod tests {
     #[test]
     fn test_basic_node_stream() {
         let body: Body = TEST_HTML.into();
-        let pf = ParserFuture::new(body, rcdom::RcDom::default());
+        let pf = ParserFuture::new(body, RcDom::default());
         let res = pf.wait();
         assert_eq!(res.is_ok(), true);
         let dom = res.unwrap();
