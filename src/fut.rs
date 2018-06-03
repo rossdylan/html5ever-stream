@@ -106,6 +106,31 @@ impl<S, C, E, D> Future for ParserFuture<S, C, E, D>
 /// counted handles to each node as a `futures::Stream`. Pretty sure this won't leak
 /// memory since everything is either owned by a NodeStream struct or Rc'd.
 /// TODO(rossdylan) Actually verify that this doesn't leak
+/// # Examples
+/// ```rust
+/// extern crate html5ever;
+/// extern crate hyper;
+/// extern crate html5ever_stream;
+/// extern crate futures;
+///
+/// use futures::{Future, Stream};
+/// use html5ever_stream::fut::{ParserFuture, NodeStream};
+/// use html5ever::rcdom::{RcDom, NodeData};
+/// use hyper::Body;
+///
+/// const TEST_HTML: &'static str = "<html> <head> <title> test </title> </head> </html>";
+/// let body: Body = TEST_HTML.into();
+/// let dom = ParserFuture::new(body, RcDom::default()).wait().unwrap();
+/// NodeStream::new(dom).for_each(|n| {
+///     match &n.data {
+///         NodeData::Element { ref name, .. } => {
+///             println!("elemn: {}", name.local);
+///         },
+///         _ => {},
+///     };
+///     Ok(())
+/// }).wait();
+/// ```
 pub struct NodeStream {
     _dom: RcDom,
     queue: VecDeque<rcdom::Handle>,
@@ -146,7 +171,6 @@ impl Stream for NodeStream {
 
 #[cfg(test)]
 mod tests {
-    use futures::finished;
     use hyper::Body;
     use html5ever::rcdom::RcDom;
 
