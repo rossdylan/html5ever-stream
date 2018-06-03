@@ -4,3 +4,4 @@ extern crate html5ever;
 
 
 pub mod fut;
+pub mod io;
