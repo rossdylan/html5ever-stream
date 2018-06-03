@@ -19,7 +19,7 @@ pub struct ParserSink<D: TreeSink> {
 impl<D> ParserSink<D> where D: TreeSink {
     /// new creates a new html5ever parser and wraps it in a structure that implements
     /// `std::io::Write`
-    fn new(dom: D) -> Self {
+    pub fn new(dom: D) -> Self {
         let parser = parse_document(dom, Default::default()).from_utf8();
         return ParserSink{
             inner: parser,
@@ -28,7 +28,7 @@ impl<D> ParserSink<D> where D: TreeSink {
 
     /// finish comsumes the ParserSink and returns the document structure completed by
     /// the inner parser.
-    fn finish(self) -> D::Output {
+    pub fn finish(self) -> D::Output {
         self.inner.finish()
     }
 }
@@ -54,8 +54,8 @@ mod tests {
     const TEST_HTML: &'static str = "<html> <head> <title> test </title> </head> </html>";
     #[test]
     fn test_write() {
-        let mut pf = ParserSink::new(RcDom::default());
-        assert_eq!(pf.write(TEST_HTML.as_bytes()), TEST_HTML.len());
-        pf.finish();
+        let mut ps = ParserSink::new(RcDom::default());
+        assert_eq!(ps.write(TEST_HTML.as_bytes()).unwrap(), TEST_HTML.len());
+        ps.finish();
     }
 }

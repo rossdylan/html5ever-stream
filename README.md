@@ -91,6 +91,24 @@ fn main() {
 }
 ```
 
+### Using Stable Reqwest 0.8.6
+
+```rust
+extern crate html5ever;
+extern crate html5ever_stream;
+extern crate reqwest;
+
+use html5ever::rcdom;
+use html5ever_stream::io::{ParserSink};
+
+fn main() {
+    let mut resp = reqwest::get("https://github.com").unwrap();
+    let mut parser = ParserSink::new(rcdom::RcDom::default());
+    resp.copy_to(&mut parser);
+    let document = parser.finish();
+}
+```
+
 
 ## License
 Licensed under the [MIT License](http://opensource.org/licenses/MIT)
