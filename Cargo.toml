@@ -1,5 +1,8 @@
 [package]
 name = "html5ever-stream"
+description = "Easily stream data into an html5ever parser"
+repository = "https://github.com/rossdylan/html5ever-stream"
+documentation = "https://docs.rs/html5ever-stream"
 version = "0.1.0"
 authors = ["Ross Delinger <rossdylan@fastmail.com>"]
 build = "build.rs"
