@@ -44,9 +44,11 @@ fn main() {
 
 
     // NOTE: We throw away errors here in two places, you are better off casting them into your
-    // own custom error type in order to propagate them. I believe async/await will also help here.
+    // own custom error type in order to propagate them.
     let req_fut = client.get("https://github.com".parse().unwrap()).map_err(|_| ());
-    let parser_fut = req_fut.and_then(|res| ParserFuture::new(res.body().map_err(|_| ()), rcdom::RcDom::default()));
+    let parser_fut = req_fut.and_then(|res| {
+        ParserFuture::new(res.body().map_err(|_| ()), rcdom::RcDom::default())
+    });
     let nodes = parser_fut.and_then(|dom| {
         NodeStream::new(&dom).collect()
     });
@@ -78,9 +80,11 @@ fn main() {
     let client = async_reqwest::Client::new(&core.handle());
 
     // NOTE: We throw away errors here in two places, you are better off casting them into your
-    // own custom error type in order to propagate them. I believe async/await will also help here.
+    // own custom error type in order to propagate them.
     let req_fut = client.get("https://github.com").send().map_err(|_| ());
-    let parser_fut = req_fut.and_then(|res| ParserFuture::new(res.into_body().map_err(|_| ()), rcdom::RcDom::default()));
+    let parser_fut = req_fut.and_then(|res| {
+        ParserFuture::new(res.into_body().map_err(|_| ()), rcdom::RcDom::default())
+    });
     let nodes = parser_fut.and_then(|dom| {
         NodeStream::new(&dom).collect()
     });
