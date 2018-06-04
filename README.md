@@ -13,6 +13,7 @@ This stream could be consumed by the standard IO Reader/Writer traits, or via a 
 * Support for any Stream that emits an item implementing AsRef<[u8]>
     * Supports hyper and unstable reqwest types automatically
 * Support for [reqwest's copy_to](https://docs.rs/reqwest/0.8.6/reqwest/struct.Response.html#method.copy_to) method
+* Helper wrappers for RcDom to make it easier to work with.
 
 ## Examples
 
