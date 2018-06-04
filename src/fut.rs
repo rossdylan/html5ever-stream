@@ -1,14 +1,10 @@
-use std::collections::VecDeque;
 use std::marker::PhantomData;
 use std::mem;
-use std::rc::Rc;
 
 use futures::{Future, Stream, Poll, Async};
 use html5ever::{
     parse_document,
     Parser,
-    rcdom,
-    rcdom::RcDom,
     tree_builder::TreeSink,
     tendril::TendrilSink,
     tendril::stream::Utf8LossyDecoder,
@@ -30,7 +26,7 @@ enum ParserState<D: TreeSink> {
 /// extern crate futures;
 ///
 /// use futures::Future;
-/// use html5ever_stream::fut::ParserFuture;
+/// use html5ever_stream::ParserFuture;
 /// use html5ever::rcdom::RcDom;
 /// use hyper::Body;
 ///
@@ -98,81 +94,16 @@ impl<S, C, E, D> Future for ParserFuture<S, C, E, D>
 }
 
 
-/// NodeStream uses a VecDeque to fully traverse the given RcDom and emit reference
-/// counted handles to each node as a `futures::Stream`. Pretty sure this won't leak
-/// memory since everything is either owned by a NodeStream struct or Rc'd.
-/// TODO(rossdylan) Actually verify that this doesn't leak
-/// # Examples
-/// ```rust
-/// extern crate html5ever;
-/// extern crate hyper;
-/// extern crate html5ever_stream;
-/// extern crate futures;
-///
-/// use futures::{Future, Stream};
-/// use html5ever_stream::fut::{ParserFuture, NodeStream};
-/// use html5ever::rcdom::{RcDom, NodeData};
-/// use hyper::Body;
-///
-/// const TEST_HTML: &'static str = "<html> <head> <title> test </title> </head> </html>";
-/// let body: Body = TEST_HTML.into();
-/// let dom = ParserFuture::new(body, RcDom::default()).wait().unwrap();
-/// NodeStream::new(dom).for_each(|n| {
-///     match &n.data {
-///         NodeData::Element { ref name, .. } => {
-///             println!("elemn: {}", name.local);
-///         },
-///         _ => {},
-///     };
-///     Ok(())
-/// }).wait();
-/// ```
-pub struct NodeStream {
-    _dom: RcDom,
-    queue: VecDeque<rcdom::Handle>,
-}
-
-impl NodeStream {
-    /// new will create a new NodeStream from the provided RcDom struct. We take
-    /// ownership of the RcDom and store it internally. We then seed our iteration
-    /// by adding a Rc reference to the first node to our queue.
-    pub fn new(dom: RcDom) -> Self {
-        let mut queue = VecDeque::new();
-        queue.push_back(Rc::clone(&dom.document));
-        NodeStream{
-            _dom: dom,
-            queue: queue,
-        }
-    }
-}
-
-impl Stream for NodeStream {
-    type Item = rcdom::Handle;
-    type Error = ();
-
-    fn poll(&mut self) -> Poll<Option<Self::Item>, Self::Error> {
-        match self.queue.pop_front() {
-            Some(ref handle) => {
-                for child in handle.children.borrow().iter() {
-                    self.queue.push_back(Rc::clone(child));
-                }
-                Ok(Async::Ready(Some(Rc::clone(handle))))
-            },
-            None => {
-                Ok(Async::Ready(None))
-            },
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
     extern crate hyper;
     extern crate reqwest;
+    extern crate futures;
+    use futures::{Future, Stream};
     use self::reqwest::unstable::async;
     use html5ever::rcdom::RcDom;
+    use ::{ParserFuture, NodeStream};
 
-    use super::*;
     const TEST_HTML: &'static str = "<html> <head> <title> test </title> </head> </html>";
     #[test]
     fn test_hyper_body_stream() {
@@ -190,7 +121,7 @@ mod tests {
         assert_eq!(res.is_ok(), true);
         let dom = res.unwrap();
 
-        let stream = NodeStream::new(dom);
+        let stream = NodeStream::new(&dom);
         let res = stream.collect().wait();
         assert_eq!(res.is_ok(), true);
         assert_eq!(res.unwrap().len(), 9);

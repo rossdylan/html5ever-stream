@@ -1,7 +1,11 @@
 extern crate futures;
-#[macro_use]
 extern crate html5ever;
 
 
-pub mod fut;
-pub mod io;
+mod common;
+mod fut;
+mod io;
+
+pub use fut::ParserFuture;
+pub use io::ParserSink;
+pub use common::{NodeStream, NodeIter};

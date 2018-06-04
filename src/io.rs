@@ -2,8 +2,6 @@ use std::io;
 use html5ever::{
     parse_document,
     Parser,
-    rcdom,
-    rcdom::RcDom,
     tree_builder::TreeSink,
     tendril::TendrilSink,
     tendril::stream::Utf8LossyDecoder,

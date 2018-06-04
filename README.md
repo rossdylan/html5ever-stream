@@ -32,7 +32,7 @@ use futures::{Future, Stream};
 use hyper::Client;
 use hyper_tls::HttpsConnector;
 use tokio_core::reactor::Core;
-use html5ever_stream::fut::{ParserFuture, NodeStream};
+use html5ever_stream::{ParserFuture, NodeStream};
 
 fn main() {
     let mut core = Core::new().unwrap();
@@ -47,7 +47,7 @@ fn main() {
     let req_fut = client.get("https://github.com".parse().unwrap()).map_err(|_| ());
     let parser_fut = req_fut.and_then(|res| ParserFuture::new(res.body().map_err(|_| ()), rcdom::RcDom::default()));
     let nodes = parser_fut.and_then(|dom| {
-        NodeStream::new(dom).collect()
+        NodeStream::new(&dom).collect()
     });
     let print_fut = nodes.and_then(|vn| {
         println!("found {} elements", vn.len());
@@ -70,7 +70,7 @@ use html5ever::rcdom;
 use futures::{Future, Stream};
 use reqwest::unstable::async as async_reqwest;
 use tokio_core::reactor::Core;
-use html5ever_stream::fut::{ParserFuture, NodeStream};
+use html5ever_stream::{ParserFuture, NodeStream};
 
 fn main() {
     let mut core = Core::new().unwrap();
@@ -81,7 +81,7 @@ fn main() {
     let req_fut = client.get("https://github.com").send().map_err(|_| ());
     let parser_fut = req_fut.and_then(|res| ParserFuture::new(res.into_body().map_err(|_| ()), rcdom::RcDom::default()));
     let nodes = parser_fut.and_then(|dom| {
-        NodeStream::new(dom).collect()
+        NodeStream::new(&dom).collect()
     });
     let print_fut = nodes.and_then(|vn| {
         println!("found {} elements", vn.len());
@@ -99,13 +99,15 @@ extern crate html5ever_stream;
 extern crate reqwest;
 
 use html5ever::rcdom;
-use html5ever_stream::io::{ParserSink};
+use html5ever_stream::{ParserSink, NodeIter};
 
 fn main() {
     let mut resp = reqwest::get("https://github.com").unwrap();
     let mut parser = ParserSink::new(rcdom::RcDom::default());
-    resp.copy_to(&mut parser);
+    resp.copy_to(&mut parser).unwrap();
     let document = parser.finish();
+    let nodes: Vec<rcdom::Handle> = NodeIter::new(&document).collect();
+    println!("found {} elements", nodes.len());
 }
 ```
 
